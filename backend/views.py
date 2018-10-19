@@ -83,7 +83,7 @@ class New_DB_detailsAPI(APIView):
                         dbserializer.save()
                         print(dbserializer.data)
                         conn.close()
-                        return Response({"status": "ok", "tables": tables, "details": details})
+                        return Response({"status": "ok", "connection_name": request_data["connection_name"], "tables": tables, "details": details})
                     except:
                         conn.close()
                         return Response({"error": "Unable to connect to Database. Check if the port is open"})
@@ -104,7 +104,7 @@ class New_DB_detailsAPI(APIView):
                             schema[table] = [schema_data[0][0],schema_data[0][1]]
                         dbserializer.save()
                         conn.close()
-                        return Response({"status": "ok","tables": tables,"details":schema}, status=status.HTTP_200_OK)
+                        return Response({"status": "ok","connection_name": request_data["connection_name"], "tables": tables,"details":schema}, status=status.HTTP_200_OK)
                     except:
                         conn.close()
                         return Response({"error": "Unable to connect to Database. Check if the port is open"})
@@ -162,3 +162,36 @@ class MysqlAPI(APIView):
 
             return Response(results, status=status.HTTP_200_OK)
         return Response({"success": False, "message": "You are not logged in."}, status=status.HTTP_403_FORBIDDEN)
+
+class DataFetcher(APIView):
+    def post(self, request):
+        if request.user.is_authenticated():
+            data = request.data.copy()
+            connection_name = data['connection_name']
+            user_id = User.objects.get(username=request.user).id
+            db = DB_details.objects.filter(user=user_id).get(connection_name=connection_name)
+            # print(db.name)
+            if db.db_type == 'psql':
+                x = {
+                    'name': db.name,
+                    'address': db.address,
+                    'password': db.password,
+                    'port': db.port,
+                    'username': db.username
+                }
+                conn = connect_psql(x)
+                curr = conn.cursor()
+                cols = data['col']
+                results = [{'status':'ok'}]
+                for col in cols:
+                    table = col['table']
+                    field = col['field']
+                    curr.execute("SELECT {} from {}".format(field, table))
+                    x = curr.fetchall()
+                    z  = []
+                    for y in x:
+                        z.append(y[0])
+                    results.append({ 'table': table, 'field': field, 'data': z })
+                conn.close()
+                return Response(results)
+            return Response("Awesome")

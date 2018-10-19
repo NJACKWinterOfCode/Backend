@@ -10,7 +10,7 @@ DB_TYPES = (
 
 
 class DB_details(models.Model):
-    connection_name = models.CharField(max_length=100, blank=False, null=False)
+    connection_name = models.CharField(max_length=100, blank=False, null=False, unique=True)
     db_type = models.CharField(
         max_length=25, choices=DB_TYPES, blank=False, null=False)
     name = models.CharField(max_length=200, blank=False, null=False)
