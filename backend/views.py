@@ -9,24 +9,19 @@ import MySQLdb
 from django.views.decorators.http import require_http_methods
 
 
-class dotdict(dict):
-   __getattr__ = dict.get
-   __setattr__ = dict.__setitem__
-   __delattr__ = dict.__delitem__
-
-
 def get_results(db_cursor, column):
-   desc = ""
-   results = []
-   iterator = 0
-   for d in db_cursor.description:
-       if d[0].lower() == column.lower():
-           desc = d[0]
-           break
-       iterator = iterator + 1
+    desc = ""
+    results = []
+    iterator = 0
+    for d in db_cursor.description:
+        if d[0].lower() == column.lower():
+            desc = d[0]
+            break
+        iterator = iterator + 1
+
     for res in db_cursor.fetchall():
-       results.append({desc:res[iterator]})
-   return results
+        results.append({desc: res[iterator]})
+    return results
 
 
 def home(request):
@@ -35,28 +30,41 @@ def home(request):
 
 class DB_detailsAPI(APIView):
     def post(self, request, dbname, format=None):
-        dbserializer = DB_detailsSerializer(data=request.data)
-        if dbserializer.is_valid():
-            dbserializer.save()
-            return Response(dbserializer.data, status=status.HTTP_200_OK)
-        return Response(dbserializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if request.user.is_authenticated():
+            request_data = request.data.copy()
+            request_data['user'] = request.user
+            dbserializer = DB_detailsSerializer(data=request_data)
+            if dbserializer.is_valid():
+                dbserializer.save()
+                return Response(dbserializer.data, status=status.HTTP_200_OK)
+            return Response(dbserializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"success": False, "message": "You are not logged in."}, status=status.HTTP_403_FORBIDDEN)
 
     def get(self, request, dbname, format=None):
-        try:
-            db_data = DB_details.objects.get(name=dbname)
-            dbserializer = DB_detailsSerializer(db_data)
-            response_data = dbserializer.data
-            return Response(response_data, status=status.HTTP_200_OK)
-        except:
-            return Response({"success": False, "message": "No details found"}, status=status.HTTP_400_BAD_REQUEST)
+        if request.user.is_authenticated():
+            try:
+                db_data = DB_details.objects.get(
+                    name=dbname, user=request.user)
+                dbserializer = DB_detailsSerializer(db_data)
+                response_data = dbserializer.data
+                return Response(response_data, status=status.HTTP_200_OK)
+            except:
+                return Response({"success": False, "message": "No details found"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"success": False, "message": "You are not logged in."}, status=status.HTTP_403_FORBIDDEN)
+
 
 class MysqlAPI(APIView):
     def get(self, request, column, dbname, tablename):
-        db_data = DB_details.objects.get(name=dbname)
-         conn = MySQLdb.connect(host=db_data.address,
-                               user=db_data.username, passwd=db_data.password)
-        cursor = conn.cursor()
-        cursor.execute('use ' + db_data.name)
-        cursor.execute('select * from ' + tablename)
-         results = get_results(cursor, column)
-         return Response(results, status=status.HTTP_200_OK)
+        if request.user.is_authenticated():
+            db_data = DB_details.objects.get(name=dbname, user=request.user)
+
+            conn = MySQLdb.connect(host=db_data.address,
+                                   user=db_data.username, passwd=db_data.password)
+            cursor = conn.cursor()
+            cursor.execute('use ' + db_data.name)
+            cursor.execute('select * from ' + tablename)
+
+            results = get_results(cursor, column)
+
+            return Response(results, status=status.HTTP_200_OK)
+        return Response({"success": False, "message": "You are not logged in."}, status=status.HTTP_403_FORBIDDEN)
