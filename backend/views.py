@@ -195,3 +195,33 @@ class DataFetcher(APIView):
                 conn.close()
                 return Response(results)
             return Response("Awesome")
+
+class DBSingle(APIView):
+    def post(self, request, connection_name):
+        if request.user.is_authenticated():
+            user = User.objects.get(username=request.user)
+            x = DB_details.objects.filter(user=user).get(connection_name=connection_name)
+            if x.db_type == 'psql':
+                try:
+                    d = {
+                        'name': x.name,
+                        'address': x.address,
+                        'password': x.password,
+                        'port': x.port,
+                        'username': x.username
+                    }
+                    conn = connect_psql(d)
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
+                    tables = []
+                    for table in cursor.fetchall():
+                        tables.append(table[0])
+                    details = {}
+                    for table in tables:
+                        # print(table)
+                        cursor.execute("select column_name, data_type from information_schema.columns where table_name='{}'".format(table))
+                        results = cursor.fetchall()
+                        details[table] = results
+                    return Response({"status": "ok", "connection_name": connection_name, "tables": tables, "details": details})
+                except Exception as e:
+                    return Response({"error": True, "message": "Unable to connect to database"})
