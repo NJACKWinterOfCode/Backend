@@ -79,6 +79,20 @@ class New_DB_detailsAPI(APIView):
                         return Response({"status": "ok", "tables": tables})
                     except:
                         return Response({"error": "Unable to connect to Database. Check if the port is open"})
+                if request_data['db_type'] == 'mysql':
+                    try:
+                        tables = []
+                        conn = MySQLdb.connect(host=request_data.get('address'),
+                                           user=request_data['username'], passwd=request_data['password'])
+                        cursor = conn.cursor()
+                        cursor.execute('use ' + request_data['name'])
+                        cursor.execute('show tables')
+                        for data in cursor.fetchall():
+                            tables.append(data[0])
+                        dbserializer.save()
+                        return Response(tables, status=status.HTTP_200_OK)
+                    except:
+                        return Response({"error": "Unable to connect to Database. Check if the port is open"})
                 return Response(dbserializer.data, status=status.HTTP_200_OK)
             return Response(dbserializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response({"success": False, "message": "You are not logged in."}, status=status.HTTP_403_FORBIDDEN)
