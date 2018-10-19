@@ -74,14 +74,23 @@ class New_DB_detailsAPI(APIView):
                         tables = []
                         for table in cursor.fetchall():
                             tables.append(table[0])
+                        details = {}
+                        for table in tables:
+                            print(table)
+                            cursor.execute("select column_name, data_type from information_schema.columns where table_name='{}'".format(table))
+                            results = cursor.fetchall()
+                            details[table] = results
                         dbserializer.save()
                         print(dbserializer.data)
-                        return Response({"status": "ok", "tables": tables})
+                        conn.close()
+                        return Response({"status": "ok", "tables": tables, "details": details})
                     except:
+                        conn.close()
                         return Response({"error": "Unable to connect to Database. Check if the port is open"})
                 if request_data['db_type'] == 'mysql':
                     try:
                         tables = []
+                        schema = {}
                         conn = MySQLdb.connect(host=request_data.get('address'),
                                            user=request_data['username'], passwd=request_data['password'])
                         cursor = conn.cursor()
@@ -89,9 +98,15 @@ class New_DB_detailsAPI(APIView):
                         cursor.execute('show tables')
                         for data in cursor.fetchall():
                             tables.append(data[0])
+                        for table in tables:
+                            cursor.execute("describe " + table)
+                            schema_data = cursor.fetchall()
+                            schema[table] = [schema_data[0][0],schema_data[0][1]]
                         dbserializer.save()
-                        return Response(tables, status=status.HTTP_200_OK)
+                        conn.close()
+                        return Response({"status": "ok","tables": tables,"details":schema}, status=status.HTTP_200_OK)
                     except:
+                        conn.close()
                         return Response({"error": "Unable to connect to Database. Check if the port is open"})
                 return Response(dbserializer.data, status=status.HTTP_200_OK)
             return Response(dbserializer.errors, status=status.HTTP_400_BAD_REQUEST)
