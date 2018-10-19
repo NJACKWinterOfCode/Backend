@@ -6,4 +6,4 @@ class DB_detailsSerializer(serializers.ModelSerializer):
 
         class Meta:
             model = DB_details
-            fields = ('name', 'address', 'password', 'username', 'port')
+            fields = ('connection_name','db_type','name','address','password','username','port','user')
