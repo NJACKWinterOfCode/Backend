@@ -92,9 +92,9 @@ WSGI_APPLICATION = 'datliser.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': os.environ.get('dbname'),
-        'USER': os.environ.get('dbuser'),
-        'PASSWORD': os.environ.get('dbpassword'),
+        'NAME': 'backend',
+        'USER': 'myuser',
+        'PASSWORD': 'ay',
         'HOST': 'localhost',
         'PORT': os.environ.get('dbport'),
     }

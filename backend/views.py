@@ -29,6 +29,7 @@ def get_results(db_cursor, column):
 def home(request):
     return HttpResponse("Home")
 
+
 def connect_psql(data):
     name = data['name']
     host = data['address']
@@ -37,6 +38,7 @@ def connect_psql(data):
     port = data['port']
     s = "dbname='{}' user='{}' host='{}' password='{}' port='{}'".format(name, username, host, password, port)
     return psycopg2.connect(s)
+
 
 class DBDetailsView(APIView):
     def get(self, request):
@@ -55,7 +57,6 @@ class DBDetailsView(APIView):
             #     print("Not Valid")
             #     return Response({"error": "bad"})
             
-
 
 class New_DB_detailsAPI(APIView):
     def post(self, request, format=None):
@@ -123,6 +124,7 @@ class New_DB_detailsAPI(APIView):
                 return Response({"success": False, "message": "No details found"}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"success": False, "message": "You are not logged in."}, status=status.HTTP_403_FORBIDDEN)
 
+
 class DB_detailsAPI(APIView):
     def post(self, request, dbname, format=None):
         if request.user.is_authenticated():
@@ -147,6 +149,7 @@ class DB_detailsAPI(APIView):
                 return Response({"success": False, "message": "No details found"}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"success": False, "message": "You are not logged in."}, status=status.HTTP_403_FORBIDDEN)
 
+
 class MysqlAPI(APIView):
     def get(self, request, column, dbname, tablename):
         if request.user.is_authenticated():
@@ -162,6 +165,7 @@ class MysqlAPI(APIView):
 
             return Response(results, status=status.HTTP_200_OK)
         return Response({"success": False, "message": "You are not logged in."}, status=status.HTTP_403_FORBIDDEN)
+
 
 class DataFetcher(APIView):
     def post(self, request):
@@ -195,6 +199,7 @@ class DataFetcher(APIView):
                 conn.close()
                 return Response(results)
             return Response("Awesome")
+            
 
 class DBSingle(APIView):
     def post(self, request, connection_name):
