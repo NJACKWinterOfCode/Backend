@@ -11,4 +11,5 @@ urlpatterns = [
         views.DB_detailsAPI.as_view(), name='DB_details'),
     url(r'^api/mysql/(?P<column>[-\w]+)/(?P<dbname>[-\w]+)/(?P<tablename>[-\w]+)/$',
         views.MysqlAPI.as_view(), name='Mysql'),
+    url(r'^api/sociallogin', views.SocialLogin.as_view(), name="SocialLogin"),
 ]
