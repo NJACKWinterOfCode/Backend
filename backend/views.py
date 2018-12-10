@@ -3,12 +3,16 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, status
 from .models import DB_details
-from .serializer import DB_detailsSerializer
+from .serializer import DB_detailsSerializer, SocialSerializer
 from django.http import HttpResponse, JsonResponse
 import MySQLdb
 import psycopg2
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.models import User
+from django.conf import settings
+from requests.exceptions import HTTPError
+from rest_framework.authtoken.models import Token
+from social_django.utils import psa
 
 
 def get_results(db_cursor, column):
@@ -230,3 +234,42 @@ class DBSingle(APIView):
                     return Response({"status": "ok", "connection_name": connection_name, "tables": tables, "details": details})
                 except Exception as e:
                     return Response({"error": True, "message": "Unable to connect to database"})
+
+
+
+class SocialLogin(APIView):
+
+    def post(self, request):
+        serializer = SocialSerializer(data=request.data)
+        print(request.data)
+        if serializer.is_valid(raise_exception=True):
+            try:
+                nfe = settings.NON_FIELD_ERRORS_KEY
+            except AttributeError:
+                nfe = 'non_field_errors'
+            try:
+                user = request.backend.do_auth(serializer.validated_data['access_token'])
+            except HTTPError as e:
+                return Response(
+                    {'errors':{
+                        'token': 'Invalid token',
+                        'detail': str(e),
+                    }},
+                    status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            if user:
+                if user.is_active:
+                    token, _ = Token.objects.get_or_create(user=user)
+                    return Response({'token': token.key})
+
+                else:
+                    return Response(
+                        {'errors': {nfe: 'This user account is inactive'}},
+                        status=status.HTTP_400_BAD_REQUEST,
+                        )
+            else:
+                return Response(
+                    {'errors': {nfe: "Authentication Failed"}},
+                    status=status.HTTP_400_BAD_REQUEST,
+                    )
