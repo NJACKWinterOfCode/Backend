@@ -3,7 +3,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, status
 from .models import DB_details
-from .serializer import DB_detailsSerializer, SocialSerializer
+from .serializer import (DB_detailsSerializer, 
+                         SocialSerializer, 
+                         Chart_detailsSerializer)
 from django.http import HttpResponse, JsonResponse
 import MySQLdb
 import psycopg2
@@ -13,6 +15,8 @@ from django.conf import settings
 from requests.exceptions import HTTPError
 from rest_framework.authtoken.models import Token
 from social_django.utils import psa
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 
 def get_results(db_cursor, column):
@@ -236,7 +240,6 @@ class DBSingle(APIView):
                     return Response({"error": True, "message": "Unable to connect to database"})
 
 
-
 class SocialLogin(APIView):
 
     def post(self, request):
@@ -251,7 +254,7 @@ class SocialLogin(APIView):
                 user = request.backend.do_auth(serializer.validated_data['access_token'])
             except HTTPError as e:
                 return Response(
-                    {'errors':{
+                    {'errors': {
                         'token': 'Invalid token',
                         'detail': str(e),
                     }},
@@ -273,3 +276,27 @@ class SocialLogin(APIView):
                     {'errors': {nfe: "Authentication Failed"}},
                     status=status.HTTP_400_BAD_REQUEST,
                     )
+
+
+class Save_Chart(APIView):
+    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, connection_name):
+        if request.user.is_authenticated:
+            request_data = request.data.copy()
+            
+            #print request data
+            chartserializer = Chart_detailsSerializer(data=request_data)
+            if chartserializer.is_valid():
+                chartserializer.save()
+                return Response({"status": "saved",
+                                 "table_name": request_data['table_name'],
+                                 "column_name": request_data['column_name']})
+            else:
+                print(chartserializer.errors)
+                return Response({'errors': True, 'message': 'Invalid request'})
+            return Response({"success": False,
+                             "message": "You are not logged in."}, status=status.HTTP_403_FORBIDDEN)
+        return Response({"success": False,
+                         "message": "You are not authenticated."}, status=status.HTTP_403_FORBIDDEN)
