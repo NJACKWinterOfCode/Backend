@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, status
-from .models import DB_details
+from .models import DB_details, Charts
 from .serializer import (DB_detailsSerializer, 
                          SocialSerializer, 
                          Chart_detailsSerializer)
@@ -300,3 +300,20 @@ class Save_Chart(APIView):
                              "message": "You are not logged in."}, status=status.HTTP_403_FORBIDDEN)
         return Response({"success": False,
                          "message": "You are not authenticated."}, status=status.HTTP_403_FORBIDDEN)
+
+
+class Show_Chart(APIView):
+    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, format=None):
+        if request.user.is_authenticated:
+            request_data = request.data.copy()
+            print(request_data)
+            x = Charts.objects.get(slug=request_data["slug"])
+            s = Chart_detailsSerializer(x)
+
+            return Response(s.data)
+        return Response({"success": False,
+                         "message": "You are not authenticated."}, status=status.HTTP_403_FORBIDDEN)
+            

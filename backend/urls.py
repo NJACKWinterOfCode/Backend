@@ -15,4 +15,5 @@ urlpatterns = [
     url(r'^api/sociallogin', views.SocialLogin.as_view(), name="SocialLogin"),
     url(r'^api/save_charts/(?P<connection_name>[-\w]+)/$',
         views.Save_Chart.as_view(), name="Save_Chart"),
+    url(r'^api/show_charts/$', views.Show_Chart.as_view(), name="Show_Chart"),
 ]
